@@ -34,8 +34,6 @@ struct DIB {
 	uint32_t important_colors;
 	/* BITMAPINFOHEADER ends */
 
-	// 40 bytes
-
 	/* BITMAPV4HEADER starts */
 	uint32_t red_mask;
 	uint32_t green_mask;
@@ -48,8 +46,6 @@ struct DIB {
 	uint32_t green_gamma;
 	uint32_t blue_gamma;
 	/* BITMAPV4HEADER ends */
-
-	// 108 bytes
 
 	/* BITMAPV5HEADER starts */
 	uint32_t intent;
@@ -67,7 +63,8 @@ struct BMP {
 };
 
 struct BMP* BMP_from_file(const char *);
+int BMP_to_file(const char *, const struct BMP *);
+
 void BMP_to_greyscale(struct BMP *b);
 
 #endif /* _BMP_H */
-
