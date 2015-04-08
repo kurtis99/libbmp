@@ -13,18 +13,6 @@
 
 #include "bmp.h"
 
-// read BMP from filesystem path and convert it into bitmap
-
-static uint32_t _get32(const uint8_t *addr)
-{
-	return addr[0] | addr[1] << 8 | addr[2] << 16 | addr[3] << 24;
-}
-
-static uint16_t _get16(const uint8_t *addr)
-{
-	return addr[0] | addr[1] << 8;
-}
-
 
 void BMP_destroy(struct BMP *b)
 {

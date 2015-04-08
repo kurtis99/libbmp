@@ -4,4 +4,6 @@ set (SRCS
 	file_io.c
 )
 
-add_library (swupdate ${SRCS})
+add_library (bmp ${SRCS})
+
+install (FILES ${CMAKE_SOURCE_DIR}/src/bmp.h DESTINATION include/libbmp)

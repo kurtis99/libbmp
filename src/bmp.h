@@ -5,12 +5,15 @@
 
 #define BMP_HEADER_SIZE 14
 
-#define BITMAPINFOHEADER	40
-#define BITMAPV2INFOHEADER	52
-#define BITMAPV3INFOHEADER	56
-#define BITMAPV4HEADER		108
-#define BITMAPV5HEADER		124
+#define BITMAPINFOHEADER_SIZE	40
+#define BITMAPV2INFOHEADER_SIZE	52
+#define BITMAPV3INFOHEADER_SIZE	56
+#define BITMAPV4HEADER_SIZE	108
+#define BITMAPV5HEADER_SIZE	124
 
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
+
+/* This structures are not binary compatible and are not aligned in any way */
 struct Header {
 	uint8_t magic[2];
 	uint32_t size;
@@ -18,8 +21,17 @@ struct Header {
 	uint32_t pix_offset;
 };
 
+enum DIB_type {
+	BITMAPINFOHEADER,
+	BITMAPV4HEADER,
+	BITMAPV5HEADER,
+	BITMAPHEADER_UNKNOWN,
+};
+
 /* implements BITMAPV5HEADER */
 struct DIB {
+	enum DIB_type DIB_type;
+
 	/* BITMAPINFOHEADER starts */
 	uint32_t size;
 	uint32_t width;

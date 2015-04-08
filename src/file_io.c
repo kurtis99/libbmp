@@ -2,12 +2,37 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "bmp.h"
 #include "debug.h"
+
+static uint32_t _get32(const uint8_t *addr)
+{
+	return addr[0] | addr[1] << 8 | addr[2] << 16 | addr[3] << 24;
+}
+
+static uint16_t _get16(const uint8_t *addr)
+{
+	return addr[0] | addr[1] << 8;
+}
+
+static void _set32(uint8_t *const addr, const uint32_t v)
+{
+	addr[0] =  v & 0x000000FF;
+	addr[1] = (v & 0x0000FF00) >> 8;
+	addr[2] = (v & 0x00FF0000) >> 8;
+	addr[3] = (v & 0xFF000000) >> 8;
+}
+
+static void _set16(uint8_t *const addr, const uint32_t v)
+{
+	addr[0] = v & 0xFF;
+	addr[1] = (v & 0xFF00) >> 8;
+}
 
 /* Returns size of header that was read */
 static int BMP_read_header(int fd, struct Header *h)
@@ -36,7 +61,7 @@ static int BMP_read_dib(int fd, struct DIB *d)
 	uint32_t size;
 	const char *dib_type = NULL;
 
-	memset(buf, '\0', BITMAPV5HEADER);
+	memset(buf, '\0', ARRAY_SIZE(buf));
 
 	r = read(fd, &size, sizeof(uint32_t));
 	if (r != sizeof(uint32_t)) {
@@ -49,16 +74,20 @@ static int BMP_read_dib(int fd, struct DIB *d)
 	}
 
 	switch (size) {
-	case BITMAPV5HEADER:
+	case BITMAPV5HEADER_SIZE:
 		if (!dib_type) dib_type = "BITMAPV5HEADER";
+
+		d->DIB_type = BITMAPV5HEADER;
 
 		d->intent		= _get32(&buf[108]);
 		d->ICC_profile_data	= _get32(&buf[112]);
 		d->ICC_profile_size	= _get32(&buf[116]);
 		d->reserved		= _get32(&buf[120]);
 
-	case BITMAPV4HEADER:
+	case BITMAPV4HEADER_SIZE:
 		if (!dib_type) dib_type = "BITMAPV4HEADER";
+
+		d->DIB_type = BITMAPV4HEADER;
 
 		d->red_mask		= _get32(&buf[40]);
 		d->green_mask		= _get32(&buf[44]);
@@ -72,8 +101,10 @@ static int BMP_read_dib(int fd, struct DIB *d)
 
 		memcpy(d->color_space_endpoints, &buf[60], 36);
 
-	case BITMAPINFOHEADER:
+	case BITMAPINFOHEADER_SIZE:
 		if (!dib_type) dib_type = "BITMAPINFOHEADER";
+
+		d->DIB_type = BITMAPINFOHEADER;
 
 		d->size			= size;
 		d->width		= _get32(&buf[4]);
@@ -157,6 +188,7 @@ struct BMP* BMP_from_file(const char *path)
 		perror("fstat");
 	}
 
+	/* TODO: Do i realy need bytes read as return code? */
 	r = BMP_read_header(fd, &BMP->Header);
 	if (BMP->Header.size != sb.st_size)
 		fprintf(stderr, "Wrong file size\n");
@@ -180,6 +212,39 @@ struct BMP* BMP_from_file(const char *path)
 	return BMP;
 }
 
+static void BMP_write_header(int fd, const struct BMP *b)
+{
+	unsigned char buf[BMP_HEADER_SIZE];
+	int r;
+
+	memset(buf, '\0', ARRAY_SIZE(buf));
+
+	buf[0] = 'B';
+	buf[1] = 'M';
+
+	_set32(&buf[2], b->Header.size);
+	_set32(&buf[10], b->Header.pix_offset);
+
+	r = write(fd, buf, BMP_HEADER_SIZE);
+	if (r != BMP_HEADER_SIZE)
+		perror("Failed to write file");
+}
+
+static void BMP_write_dib(int fd, const struct BMP *b)
+{
+
+}
+
+static void BMP_write_colortable(int fd, const struct BMP *b)
+{
+
+}
+
+static void BMP_write_pixels(int fd, const struct BMP *b)
+{
+
+}
+
 /**
  * \brief Writes intermediate state to file at given path
  *
@@ -193,5 +258,23 @@ struct BMP* BMP_from_file(const char *path)
  */
 int BMP_to_file(const char *path, const struct BMP *b)
 {
-	// TODO
+	int fd;
+
+	printf("Opening %s\n", path);
+
+	// open file and get file descriptor
+	fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+	if (fd == -1) {
+		perror(path);
+		return -1;
+	}
+
+	BMP_write_header(fd, b);
+	BMP_write_dib(fd, b);
+	BMP_write_colortable(fd, b);
+	BMP_write_pixels(fd, b);
+
+	// check which BMP header we are going to use
+	// by default  create BITMAPINFOHEADER
+
 }
