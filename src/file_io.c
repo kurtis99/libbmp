@@ -2,9 +2,12 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "bmp.h"
+#include "debug.h"
 
 /* Returns size of header that was read */
 static int BMP_read_header(int fd, struct Header *h)
