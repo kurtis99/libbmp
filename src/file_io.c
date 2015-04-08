@@ -56,19 +56,21 @@ static int BMP_read_header(int fd, struct Header *h)
 
 static int BMP_read_dib(int fd, struct DIB *d)
 {
-	unsigned char buf[BITMAPV5HEADER];
+	unsigned char buf[BITMAPV5HEADER_SIZE];
 	int r;
 	uint32_t size;
 	const char *dib_type = NULL;
 
 	memset(buf, '\0', ARRAY_SIZE(buf));
 
-	r = read(fd, &size, sizeof(uint32_t));
+	r = read(fd, buf, sizeof(uint32_t));
 	if (r != sizeof(uint32_t)) {
 		perror("Failed to read file\n");
 	}
 
-	r = read(fd, buf + sizeof(uint32_t), size - sizeof(uint32_t));
+	size = _get32(&buf[0]);
+
+	r = read(fd, buf + sizeof(size), size - sizeof(size));
 	if (r != (size - sizeof(uint32_t))) {
 		perror("Failed to read file\n");
 	}
@@ -168,15 +170,15 @@ struct BMP* BMP_from_file(const char *path)
 	int fd = 0;
 	struct stat sb;
 	int r;
-	struct BMP *BMP;
+	struct BMP *b;
 
-	BMP = malloc(sizeof(struct BMP));
-	if (BMP == NULL) {
+	b = malloc(sizeof(struct BMP));
+	if (b == NULL) {
 		fprintf(stderr, "Failed to allocate memory for BMP struct\n");
 		return NULL;
 	}
 
-	memset(BMP, '\0', sizeof(struct BMP));
+	memset(b, '\0', sizeof(struct BMP));
 
 	fd = open(path, O_RDONLY);
 	if (fd == -1) {
@@ -189,27 +191,27 @@ struct BMP* BMP_from_file(const char *path)
 	}
 
 	/* TODO: Do i realy need bytes read as return code? */
-	r = BMP_read_header(fd, &BMP->Header);
-	if (BMP->Header.size != sb.st_size)
+	r = BMP_read_header(fd, &b->Header);
+	if (b->Header.size != sb.st_size)
 		fprintf(stderr, "Wrong file size\n");
 
-	r += BMP_read_dib(fd, &BMP->DIB);
+	r += BMP_read_dib(fd, &b->DIB);
 
-	BMP->color_table = malloc(BMP->DIB.colors * sizeof(uint32_t));
-	if (BMP->color_table == NULL)
+	b->color_table = malloc(b->DIB.colors * sizeof(uint32_t));
+	if (b->color_table == NULL)
 		fprintf(stderr, "Failed to allocate memory\n");
 
-	BMP->pixels = malloc(BMP->DIB.image_size);
-	if (BMP->pixels == NULL)
+	b->pixels = malloc(b->DIB.image_size);
+	if (b->pixels == NULL)
 		fprintf(stderr, "Failed to allocate memory\n");
 
-	BMP_read_colortable(fd, BMP);
-	BMP_read_pixels(fd, BMP);
+	BMP_read_colortable(fd, b);
+	BMP_read_pixels(fd, b);
 
-        dump_array(stderr, (const uint8_t*)BMP->color_table, 1024, sizeof(uint8_t));
-        dump_array(stderr, BMP->pixels, 1024, sizeof(uint8_t));
+        dump_array(stderr, (const uint8_t*)b->color_table, 1024, sizeof(uint8_t));
+        dump_array(stderr, b->pixels, 1024, sizeof(uint8_t));
 
-	return BMP;
+	return b;
 }
 
 static void BMP_write_header(int fd, const struct BMP *b)
@@ -232,17 +234,78 @@ static void BMP_write_header(int fd, const struct BMP *b)
 
 static void BMP_write_dib(int fd, const struct BMP *b)
 {
+	unsigned char buf[BITMAPV5HEADER_SIZE];
+	int r;
 
+	memset(buf, '\0', ARRAY_SIZE(buf));
+
+	switch (b->DIB.DIB_type) {
+	case BITMAPV5HEADER:
+
+		_set32(&buf[108], b->DIB.intent);
+		_set32(&buf[112], b->DIB.ICC_profile_data);
+		_set32(&buf[116], b->DIB.ICC_profile_size);
+		_set32(&buf[120], b->DIB.reserved);
+
+	case BITMAPV4HEADER:
+
+		_set32(&buf[40], b->DIB.red_mask);
+		_set32(&buf[44], b->DIB.green_mask);
+		_set32(&buf[48], b->DIB.blue_mask);
+		_set32(&buf[52], b->DIB.alpha_mask);
+		_set32(&buf[56], b->DIB.color_space_type);
+		_set32(&buf[96], b->DIB.red_gamma);
+		_set32(&buf[100], b->DIB.green_gamma);
+		_set32(&buf[104], b->DIB.blue_gamma);
+
+		memcpy(&buf[60], b->DIB.color_space_endpoints, 36);
+
+	case BITMAPINFOHEADER:
+
+		_set32(&buf[0], b->DIB.size);
+		_set32(&buf[4], b->DIB.width);
+		_set32(&buf[8], b->DIB.height);
+		_set16(&buf[12], b->DIB.color_planes);
+		_set16(&buf[14], b->DIB.bits_per_pixel);
+		_set32(&buf[16], b->DIB.compression);
+		_set32(&buf[20], b->DIB.image_size);
+		_set32(&buf[24], b->DIB.h_resolution);
+		_set32(&buf[28], b->DIB.v_resolution);
+		_set32(&buf[32], b->DIB.colors);
+		_set32(&buf[36], b->DIB.important_colors);
+
+		break;
+	default:
+		break;
+	}
+
+	r = write(fd, buf, b->DIB.size);
+	if (r != b->DIB.size)
+		perror("Failed to write file");
 }
 
 static void BMP_write_colortable(int fd, const struct BMP *b)
 {
+	int r;
+	int to_write;
 
+	to_write = b->DIB.colors * sizeof(uint32_t);
+	r = write(fd, b->color_table, to_write);
+	if (r != to_write) {
+		perror("Failed to write color table from file\n");
+	}
 }
 
 static void BMP_write_pixels(int fd, const struct BMP *b)
 {
+	int r;
+	int to_write;
 
+	to_write = b->DIB.image_size;
+	r = write(fd, b->pixels, to_write);
+	if (r != to_write) {
+		perror("Failed to write pixels from file\n");
+	}
 }
 
 /**
