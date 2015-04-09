@@ -60,3 +60,43 @@ void BMP_to_greyscale(struct BMP *b)
 
 	free(colors);
 }
+
+#define dump_dib(x, t) printf(t ": %10d\n", b->DIB.x);
+
+void BMP_dump(const struct BMP *b)
+{
+	printf("BMP magic: %c%c\n", b->Header.magic[0], b->Header.magic[1]);
+	printf("BMP size: %u\n", b->Header.size);
+	printf("BMP pixel offset: %u\n", b->Header.pix_offset);
+
+	switch (b->DIB.DIB_type) {
+		case BITMAPINFOHEADER: printf("Header type: BITMAPINFOHEADER\n"); break;
+		case BITMAPV4HEADER: printf("Header type: BITMAPV4HEADER\n"); break;
+		case BITMAPV5HEADER: printf("Header type: BITMAPV5HEADER\n"); break;
+		default: printf("Header type: UNKNOWN\n"); break;
+	}
+
+	dump_dib(size, "size")
+	dump_dib(width, "width")
+	dump_dib(height, "height")
+	dump_dib(color_planes, "color_planes")
+	dump_dib(bits_per_pixel, "bits_per_pixel")
+	dump_dib(compression, "compression")
+	dump_dib(image_size, "image_size")
+	dump_dib(h_resolution, "h_resolution")
+	dump_dib(v_resolution, "v_resolution")
+	dump_dib(colors, "colors")
+	dump_dib(important_colors, "important_colors")
+	dump_dib(red_mask, "red_mask")
+	dump_dib(green_mask, "green_mask")
+	dump_dib(blue_mask, "blue_mask")
+	dump_dib(alpha_mask, "alpha_mask")
+	dump_dib(color_space_type, "color_space_type")
+	dump_dib(red_gamma, "red_gamma")
+	dump_dib(green_gamma, "green_gamma")
+	dump_dib(blue_gamma, "blue_gamma")
+	dump_dib(intent, "intent")
+	dump_dib(ICC_profile_data, "ICC_profile_data")
+	dump_dib(ICC_profile_size, "ICC_profile_size")
+	dump_dib(reserved, "reserved")
+}
