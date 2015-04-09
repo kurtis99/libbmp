@@ -76,6 +76,7 @@ struct BMP {
 
 struct BMP* BMP_from_file(const char *);
 int BMP_to_file(const char *, const struct BMP *);
+void BMP_dump(const struct BMP *B);
 
 void BMP_to_greyscale(struct BMP *b);
 
