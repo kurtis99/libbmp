@@ -33,4 +33,5 @@
 
 # mb
 build
+output_test
 *.swp
