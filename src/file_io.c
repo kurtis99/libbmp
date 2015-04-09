@@ -27,8 +27,8 @@ static void _set32(uint8_t *const addr, const uint32_t v)
 
 	addr[0] =  v & 0x000000FF;
 	addr[1] = (v & 0x0000FF00) >> 8;
-	addr[2] = (v & 0x00FF0000) >> 8;
-	addr[3] = (v & 0xFF000000) >> 8;
+	addr[2] = (v & 0x00FF0000) >> 16;
+	addr[3] = (v & 0xFF000000) >> 24;
 }
 
 static void _set16(uint8_t *const addr, const uint32_t v)
@@ -212,8 +212,8 @@ struct BMP* BMP_from_file(const char *path)
 	BMP_read_colortable(fd, b);
 	BMP_read_pixels(fd, b);
 
-        dump_array(stderr, (const uint8_t*)b->color_table, 1024, sizeof(uint8_t));
-        dump_array(stderr, b->pixels, 1024, sizeof(uint8_t));
+        //dump_array(stderr, (const uint8_t*)b->color_table, 1024, sizeof(uint8_t));
+        //dump_array(stderr, b->pixels, 1024, sizeof(uint8_t));
 
 	return b;
 }
