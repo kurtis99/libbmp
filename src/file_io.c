@@ -23,6 +23,8 @@ static uint16_t _get16(const uint8_t *addr)
 
 static void _set32(uint8_t *const addr, const uint32_t v)
 {
+	printf("%p %08X\n", addr, v);
+
 	addr[0] =  v & 0x000000FF;
 	addr[1] = (v & 0x0000FF00) >> 8;
 	addr[2] = (v & 0x00FF0000) >> 8;
@@ -58,7 +60,7 @@ static int BMP_read_header(int fd, struct Header *h)
 static int BMP_read_dib(int fd, struct DIB *d)
 {
 	unsigned char buf[BITMAPV5HEADER_SIZE];
-	int r;
+	int r, read_size;
 	uint32_t size;
 	const char *dib_type = NULL;
 
@@ -70,27 +72,30 @@ static int BMP_read_dib(int fd, struct DIB *d)
 	}
 
 	size = _get32(&buf[0]);
-
-	r = read(fd, buf + sizeof(size), size - sizeof(size));
-	if (r != (size - sizeof(uint32_t))) {
+	read_size = size - sizeof(size);
+	r = read(fd, buf + sizeof(size), read_size);
+	if (r != read_size) {
 		perror("Failed to read file\n");
 	}
 
 	switch (size) {
-	case BITMAPV5HEADER_SIZE:
-		if (!dib_type) dib_type = "BITMAPV5HEADER";
+	case BITMAPV5HEADER_SIZE: d->DIB_type = BITMAPV5HEADER; break;
+	case BITMAPV4HEADER_SIZE: d->DIB_type = BITMAPV4HEADER; break;
+	case BITMAPINFOHEADER_SIZE: d->DIB_type = BITMAPINFOHEADER; break;
+	default: d->DIB_type = BITMAPHEADER_UNKNOWN; break;
+	}
 
-		d->DIB_type = BITMAPV5HEADER;
+	switch (d->DIB_type) {
+	case BITMAPV5HEADER:
+		if (!dib_type) dib_type = "BITMAPV5HEADER";
 
 		d->intent		= _get32(&buf[108]);
 		d->ICC_profile_data	= _get32(&buf[112]);
 		d->ICC_profile_size	= _get32(&buf[116]);
 		d->reserved		= _get32(&buf[120]);
 
-	case BITMAPV4HEADER_SIZE:
+	case BITMAPV4HEADER:
 		if (!dib_type) dib_type = "BITMAPV4HEADER";
-
-		d->DIB_type = BITMAPV4HEADER;
 
 		d->red_mask		= _get32(&buf[40]);
 		d->green_mask		= _get32(&buf[44]);
@@ -104,10 +109,8 @@ static int BMP_read_dib(int fd, struct DIB *d)
 
 		memcpy(d->color_space_endpoints, &buf[60], 36);
 
-	case BITMAPINFOHEADER_SIZE:
+	case BITMAPINFOHEADER:
 		if (!dib_type) dib_type = "BITMAPINFOHEADER";
-
-		d->DIB_type = BITMAPINFOHEADER;
 
 		d->size			= size;
 		d->width		= _get32(&buf[4]);
@@ -281,7 +284,7 @@ static void BMP_write_dib(int fd, const struct BMP *b)
 	}
 
 	r = write(fd, buf, b->DIB.size);
-	if (r != b->DIB.size)
+	if (r != (int)b->DIB.size)
 		perror("Failed to write file");
 }
 
@@ -341,4 +344,5 @@ int BMP_to_file(const char *path, const struct BMP *b)
 	// check which BMP header we are going to use
 	// by default  create BITMAPINFOHEADER
 
+	return 0;
 }

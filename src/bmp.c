@@ -12,7 +12,7 @@
 #include <assert.h>
 
 #include "bmp.h"
-
+#include "debug.h"
 
 void BMP_destroy(struct BMP *b)
 {
@@ -61,7 +61,7 @@ void BMP_to_greyscale(struct BMP *b)
 	free(colors);
 }
 
-#define dump_dib(x, t) printf(t ": %10d\n", b->DIB.x);
+#define dump_dib(x, t) printf("%-20s" ": %u\n", t, b->DIB.x);
 
 void BMP_dump(const struct BMP *b)
 {
