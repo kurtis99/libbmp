@@ -16,7 +16,8 @@
 
 void BMP_destroy(struct BMP *b)
 {
-	assert(b != NULL);
+	if (b == NULL)
+		return;
 
 	free(b->color_table);
 	free(b->pixels);

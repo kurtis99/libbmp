@@ -28,5 +28,3 @@ void dump_array(FILE *fd, const uint8_t *data, size_t len, size_t elem_size)
 
 	free(buf);
 }
-
-

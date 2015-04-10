@@ -164,8 +164,8 @@ static int BMP_read_pixels(int fd, struct BMP *b)
 /**
  * \brief Reads BMP at given path
  *
- * This functions read BMP File at provided path and returns intermediate
- * repsentation of BMP that was read
+ * Reads bmp file at provided path and return pointer to allocated struct BMP.
+ * If file path provided is not valid returns NULL
  *
  * \param path path to BMP file
  */
@@ -187,6 +187,7 @@ struct BMP* BMP_from_file(const char *path)
 	fd = open(path, O_RDONLY);
 	if (fd == -1) {
 		perror(path);
+		free(b);
 		return NULL;
 	}
 
