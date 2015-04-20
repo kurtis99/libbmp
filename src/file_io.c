@@ -330,7 +330,6 @@ int BMP_to_file(const char *path, const struct BMP *b)
 
 	printf("Opening %s\n", path);
 
-	// open file and get file descriptor
 	fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
 	if (fd == -1) {
 		perror(path);
@@ -341,9 +340,6 @@ int BMP_to_file(const char *path, const struct BMP *b)
 	BMP_write_dib(fd, b);
 	BMP_write_colortable(fd, b);
 	BMP_write_pixels(fd, b);
-
-	// check which BMP header we are going to use
-	// by default  create BITMAPINFOHEADER
 
 	return 0;
 }

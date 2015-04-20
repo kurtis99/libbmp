@@ -62,6 +62,19 @@ void BMP_to_greyscale(struct BMP *b)
 	free(colors);
 }
 
+uint32_t BMP_get_pixel(const struct *BMP b, const size_t x, const size_t y)
+{
+	struct Color c;
+	uint32_t pixel;
+
+	if (b->DIB.colors > 0)
+	pixel = b->color_table
+
+	c.red = b->
+
+	return b->color_table[x + y * b->DIB.width];
+}
+
 #define dump_dib(x, t) printf("%-20s" ": %u\n", t, b->DIB.x);
 
 void BMP_dump(const struct BMP *b)

@@ -3,6 +3,9 @@
 
 #include "../src/bmp.h"
 
+#define xstr(s) str(s)
+#define str(s) #s
+
 START_TEST (test_bmp_read_file)
 {
 	struct BMP *b;
@@ -13,7 +16,7 @@ START_TEST (test_bmp_read_file)
 }
 END_TEST
 
-START_TEST (test_bmp_read_file_fail)
+START_TEST (test_read_missing_file)
 {
 	struct BMP *b;
 
@@ -23,17 +26,17 @@ START_TEST (test_bmp_read_file_fail)
 }
 END_TEST
 
-Suite* bmp_suite(void)
+Suite* file_io_suite(void)
 {
 	Suite *s;
 	TCase *tc_core;
 
-	s = suite_create("BMP general operation");
+	s = suite_create("File IO capabilities, binary IO");
 
 	/* Test to check file io capabilities */
-	tc_core = tcase_create("Core");
-	tcase_add_test(tc_core, test_bmp_read_file);
-	tcase_add_test(tc_core, test_bmp_read_file_fail);
+	tc_core = tcase_create("binary");
+	tcase_add_test(tc_core, test_read_file);
+	tcase_add_test(tc_core, test_read_missing_file);
 
 	suite_add_tcase(s, tc_core);
 
