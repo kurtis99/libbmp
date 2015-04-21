@@ -1,10 +1,6 @@
 #include <stdlib.h>
-#include <check.h>
 
-#include "../src/bmp.h"
-
-#define xstr(s) str(s)
-#define str(s) #s
+#include "test_main.h"
 
 START_TEST (test_bmp_read_file)
 {
@@ -35,7 +31,7 @@ Suite* file_io_suite(void)
 
 	/* Test to check file io capabilities */
 	tc_core = tcase_create("binary");
-	tcase_add_test(tc_core, test_read_file);
+	tcase_add_test(tc_core, test_bmp_read_file);
 	tcase_add_test(tc_core, test_read_missing_file);
 
 	suite_add_tcase(s, tc_core);

@@ -1,7 +1,8 @@
 #include <stdlib.h>
-#include <check.h>
+#include "test_main.h"
 
-Suite* bmp_master_suite(void);
+Suite* bmp_suite(void);
+Suite* file_io_suite(void);
 
 int main (void)
 {
@@ -10,8 +11,10 @@ int main (void)
 	Suite *s;
 	SRunner *sr;
 
-	s = bmp_master_suite();
+	s = bmp_suite();
 	sr = srunner_create(s);
+
+	srunner_add_suite (sr, file_io_suite());
 
 	//srunner_run_all(sr, CK_NORMAL);
 	srunner_run_all(sr, CK_VERBOSE);
