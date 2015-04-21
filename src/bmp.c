@@ -62,17 +62,40 @@ void BMP_to_greyscale(struct BMP *b)
 	free(colors);
 }
 
-uint32_t BMP_get_pixel(const struct *BMP b, const size_t x, const size_t y)
+/* Functions returns number of zeros on the right side */
+static int post_zeros(uint32_t v)
+{
+	int n;
+
+	if (v == 0) return 32;
+
+	n = 0;
+	if ((v & 0x0000FFFF)== 0) { n += 16; v >>= 16;}
+	if ((v & 0x000000FF)== 0) { n += 8; v >>= 8;}
+	if ((v & 0x0000000F)== 0) { n += 4; v >>= 4;}
+	if ((v & 0x00000003)== 0) { n += 2; v >>= 2;}
+
+	return n + !(v&0x1);
+}
+
+struct Color BMP_get_pixel(const struct BMP *b, const size_t x, const size_t y)
 {
 	struct Color c;
 	uint32_t pixel;
 
-	if (b->DIB.colors > 0)
-	pixel = b->color_table
+	/* If colors is zero then every pixel is by itself and it shuold be
+	 * parsed according to its format */
+	if (b->DIB.colors == 0)
+		pixel = b->color_table[x + y * b->DIB.width];
 
-	c.red = b->
+	// TODO: This works only if compression == 3
+	pixel = b->color_table[x + y * b->DIB.width];
+	c.red   = (pixel & b->DIB.red_mask) >> post_zeros(b->DIB.red_mask);
+	c.green = (pixel & b->DIB.green_mask) >> post_zeros(b->DIB.green_mask);
+	c.blue  = (pixel & b->DIB.blue_mask) >> post_zeros(b->DIB.blue_mask);
+	c.alpha = (pixel & b->DIB.alpha_mask) >> post_zeros(b->DIB.alpha_mask);
 
-	return b->color_table[x + y * b->DIB.width];
+	return c;
 }
 
 #define dump_dib(x, t) printf("%-20s" ": %u\n", t, b->DIB.x);

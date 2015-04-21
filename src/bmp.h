@@ -28,6 +28,35 @@ enum DIB_type {
 	BITMAPHEADER_UNKNOWN,
 };
 
+/*
+enum Compression {
+0	BI_RGB	none	Most common
+1	BI_RLE8	RLE 8-bit/pixel	Can be used only with 8-bit/pixel bitmaps
+2	BI_RLE4	RLE 4-bit/pixel	Can be used only with 4-bit/pixel bitmaps
+3	BI_BITFIELDS	OS22XBITMAPHEADER: Huffman 1D	BITMAPV2INFOHEADER: RGB bit field masks,
+BITMAPV3INFOHEADER+: RGBA
+4	BI_JPEG	OS22XBITMAPHEADER: RLE-24	BITMAPV4INFOHEADER+: JPEG image for printing[10]
+5	BI_PNG		BITMAPV4INFOHEADER+: PNG image for printing[10]
+6	BI_ALPHABITFIELDS	RGBA bit field masks	only Windows CE 5.0 with .NET 4.0 or later
+11	BI_CMYK	none	only Windows Metafile CMYK[4]
+12	BI_CMYKRLE8	RLE-8	only Windows Metafile CMYK
+13	BI_CMYKTLE4	RLE-4	only Windows Metafile CMYK
+
+
+0	BI_RGB	none	Most common
+1	BI_RLE8	RLE 8-bit/pixel	Can be used only with 8-bit/pixel bitmaps
+2	BI_RLE4	RLE 4-bit/pixel	Can be used only with 4-bit/pixel bitmaps
+3	BI_BITFIELDS	OS22XBITMAPHEADER: Huffman 1D	BITMAPV2INFOHEADER: RGB bit field masks,
+BITMAPV3INFOHEADER+: RGBA
+4	BI_JPEG	OS22XBITMAPHEADER: RLE-24	BITMAPV4INFOHEADER+: JPEG image for printing[10]
+5	BI_PNG		BITMAPV4INFOHEADER+: PNG image for printing[10]
+6	BI_ALPHABITFIELDS	RGBA bit field masks	only Windows CE 5.0 with .NET 4.0 or later
+11	BI_CMYK	none	only Windows Metafile CMYK[4]
+12	BI_CMYKRLE8	RLE-8	only Windows Metafile CMYK
+13	BI_CMYKTLE4	RLE-4	only Windows Metafile CMYK
+}
+*/
+
 /* implements BITMAPV5HEADER */
 struct DIB {
 	enum DIB_type DIB_type;
