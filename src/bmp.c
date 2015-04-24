@@ -62,6 +62,7 @@ void BMP_to_greyscale(struct BMP *b)
 	free(colors);
 }
 
+#if 0
 /* Functions returns number of zeros on the right side */
 static int post_zeros(uint32_t v)
 {
@@ -77,28 +78,120 @@ static int post_zeros(uint32_t v)
 
 	return n + !(v&0x1);
 }
+#endif
+
+/* Align number up to multiple of 2 */
+static int align_up(const int v, const int mul)
+{
+	if (v == 0) return mul;
+	return (v + mul - 1) & -mul;
+}
+
+/* Return number of bytes that will allocate pix pixels in bpp format with mul
+ * alignment */
+static int align_up_bpp(int pix, const int bpp, const int mul)
+{
+	int bytes;
+	bytes = (pix * bpp + 7) / 8;
+	return align_up(bytes, mul);
+}
+
+/* Return data */
+static unsigned int get_at_offset(const uint8_t *buf, const int num, const int bpp)
+{
+	int bytes, bits;
+
+	/* Bytes that contains start of required pixel (or whole pixel) */
+	bytes = (pix * bpp) / 8;
+	/* Bit offset where pixel starts */
+	bits = (pix * bpp) % 8;
+
+	/* TODO */
+}
+
+static uint32_t fetch_bitmap(const struct BMP *b, const size_t x, const size_t y)
+{
+	int scanline;
+	uint32_t pixel;
+	int bpp;
+
+	bpp = b->DIB.bits_per_pixel;
+	scanline = align_up_bpp(b->DIB.width, bpp, 4);
+
+	switch (bpp) {
+		pixel = b->pixels[bpp * (x + y * scanline)]
+	}
+
+
+
+	/* if color table exists, take pixel from there */
+	if (b->DIB.colors > 0)
+		return b->color_table[pixel];
+	else
+		return pixel;
+}
 
 struct Color BMP_get_pixel(const struct BMP *b, const size_t x, const size_t y)
 {
 	struct Color c;
+//	int bpp;
 	uint32_t pixel;
+
+	/* BPP 1,4,8 - color table is MUST */
+	/* BPP 16, 24, 32 - color table might be (check) */
+//	bpp = b->DIB.bits_per_pixel;
+
+	pixel = fetch_bitmap(b, x, y);
+
+	c.red = pixel + x + y + align_up_bpp(1,2,3);
+#if 0
+	uint32_t pixel;
+	int scanline;
+	scanline = align_up(b->DIB.width, 4);
 
 	/* If colors is zero then every pixel is by itself and it shuold be
 	 * parsed according to its format */
 	if (b->DIB.colors == 0)
-		pixel = b->color_table[x + y * b->DIB.width];
+		pixel = b->color_table[x + y * scanline];
 
-	// TODO: This works only if compression == 3
-	pixel = b->color_table[x + y * b->DIB.width];
+	/* Code below works only for compression == 3 */
+	/* This works only for 32 RGB */
+	assert(b->DIB.compression == BI_BITFIELDS);
+	pixel = b->color_table[(x + y * scanline) * (b->DIB.bits_per_pixel / 8)];
 	c.red   = (pixel & b->DIB.red_mask) >> post_zeros(b->DIB.red_mask);
 	c.green = (pixel & b->DIB.green_mask) >> post_zeros(b->DIB.green_mask);
 	c.blue  = (pixel & b->DIB.blue_mask) >> post_zeros(b->DIB.blue_mask);
 	c.alpha = (pixel & b->DIB.alpha_mask) >> post_zeros(b->DIB.alpha_mask);
+#endif
 
 	return c;
 }
 
+/* Prints structure field and its integer value */
 #define dump_dib(x, t) printf("%-20s" ": %u\n", t, b->DIB.x);
+/* Prints structure field and string representation of its integer value */
+#define dump_dib_str(x, func, t) printf("%-20s" ": %s (%d)\n", t, func(b->DIB.x), b->DIB.x);
+
+static const char* _get_compression_str(const int v)
+{
+	const char *str;
+
+	switch (v) {
+		case BI_RGB:       str = "BI_RGB"; break;
+		case BI_RLE8:      str = "BI_RLE8"; break;
+		case BI_RLE4:      str = "BI_RLE4"; break;
+		case BI_BITFIELDS: str = "BI_BITFIELDS"; break;
+		case BI_JPEG:      str = "BI_JPEG"; break;
+		case BI_PNG:       str = "BI_PNG"; break;
+		case BI_ALPHABITFIELDS: str = "BI_ALPHABITFIELDS"; break;
+		case BI_CMYK:     str = "BI_CMYK"; break;
+		case BI_CMYKRLE8: str = "BI_CMYKRLE8"; break;
+		case BI_CMYKTLE4: str = "BI_CMYKTLE4"; break;
+		default: str = "UNKNOWN"; break;
+	}
+
+	return str;
+}
 
 void BMP_dump(const struct BMP *b)
 {
@@ -118,7 +211,7 @@ void BMP_dump(const struct BMP *b)
 	dump_dib(height, "height")
 	dump_dib(color_planes, "color_planes")
 	dump_dib(bits_per_pixel, "bits_per_pixel")
-	dump_dib(compression, "compression")
+	dump_dib_str(compression, _get_compression_str, "compression")
 	dump_dib(image_size, "image_size")
 	dump_dib(h_resolution, "h_resolution")
 	dump_dib(v_resolution, "v_resolution")
