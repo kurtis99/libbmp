@@ -34,6 +34,63 @@ START_TEST (test_bmp_bits)
 END_TEST
 #endif
 
+START_TEST (test_bmp__do_mask)
+{
+	ck_assert_uint_eq(_do_mask(0), 0b0);
+	ck_assert_uint_eq(_do_mask(1), 0b1);
+	ck_assert_uint_eq(_do_mask(2), 0b11);
+	ck_assert_uint_eq(_do_mask(3), 0b111);
+	ck_assert_uint_eq(_do_mask(4), 0b1111);
+	ck_assert_uint_eq(_do_mask(5), 0b11111);
+	ck_assert_uint_eq(_do_mask(6), 0b111111);
+	ck_assert_uint_eq(_do_mask(7), 0b1111111);
+	ck_assert_uint_eq(_do_mask(8), 0b11111111);
+	ck_assert_uint_eq(_do_mask(9), 0b111111111);
+	ck_assert_uint_eq(_do_mask(10), 0b1111111111);
+	ck_assert_uint_eq(_do_mask(11), 0b11111111111);
+	ck_assert_uint_eq(_do_mask(12), 0b111111111111);
+
+	ck_assert_uint_eq(_do_mask(16), 0xffff);
+	ck_assert_uint_eq(_do_mask(24), 0xffffff);
+	ck_assert_uint_eq(_do_mask(32), 0xffffffff);
+}
+END_TEST
+
+START_TEST (test_bmp_get_at_offset)
+{
+	unsigned char test_arr[] = {0x11, 0x22, 0x33, 0x44};
+
+	ck_assert_uint_eq(get_at_offset(test_arr, 0, 1), 0x1);
+	ck_assert_uint_eq(get_at_offset(test_arr, 8, 1), 0x0);
+	ck_assert_uint_eq(get_at_offset(test_arr, 16, 1), 0x1);
+	ck_assert_uint_eq(get_at_offset(test_arr, 24, 1), 0x0);
+
+	ck_assert_uint_eq(get_at_offset(test_arr, 0, 2), 0x1);
+	ck_assert_uint_eq(get_at_offset(test_arr, 1, 2), 0x0);
+
+	ck_assert_uint_eq(get_at_offset(test_arr, 0, 4), 0x1);
+	ck_assert_uint_eq(get_at_offset(test_arr, 1, 4), 0x1);
+	ck_assert_uint_eq(get_at_offset(test_arr, 2, 4), 0x2);
+	ck_assert_uint_eq(get_at_offset(test_arr, 3, 4), 0x2);
+	ck_assert_uint_eq(get_at_offset(test_arr, 4, 4), 0x3);
+	ck_assert_uint_eq(get_at_offset(test_arr, 5, 4), 0x3);
+	ck_assert_uint_eq(get_at_offset(test_arr, 6, 4), 0x4);
+	ck_assert_uint_eq(get_at_offset(test_arr, 7, 4), 0x4);
+
+	ck_assert_uint_eq(get_at_offset(test_arr, 0, 8), 0x11);
+	ck_assert_uint_eq(get_at_offset(test_arr, 1, 8), 0x22);
+	ck_assert_uint_eq(get_at_offset(test_arr, 2, 8), 0x33);
+	ck_assert_uint_eq(get_at_offset(test_arr, 3, 8), 0x44);
+
+	ck_assert_uint_eq(get_at_offset(test_arr, 0, 16), 0x1122);
+	ck_assert_uint_eq(get_at_offset(test_arr, 1, 16), 0x3344);
+
+	ck_assert_uint_eq(get_at_offset(test_arr, 0, 24), 0x112233);
+
+	ck_assert_uint_eq(get_at_offset(test_arr, 0, 32), 0x11223344);
+}
+END_TEST
+
 START_TEST (test_bmp_align)
 {
 	size_t i;
@@ -132,6 +189,8 @@ Suite* bmp_suite(void)
 	tcase_add_test(tc_core, test_bmp_read_file_fail);
 	//tcase_add_test(tc_core, test_bmp_bits);
 	tcase_add_test(tc_core, test_bmp_align);
+	tcase_add_test(tc_core, test_bmp__do_mask);
+	tcase_add_test(tc_core, test_bmp_get_at_offset);
 
 	suite_add_tcase(s, tc_core);
 

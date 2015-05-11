@@ -87,63 +87,73 @@ static int align_up(const int v, const int mul)
 	return (v + mul - 1) & -mul;
 }
 
+#define ASSERT_BPP(_bpp) \
+	assert(_bpp == 1 || _bpp == 2 || _bpp == 4 || _bpp == 8 || _bpp == 16 || \
+			_bpp == 24 || _bpp == 32);
+
 /* Return number of bytes that will allocate pix pixels in bpp format with mul
  * alignment */
 static int align_up_bpp(int pix, const int bpp, const int mul)
 {
+	ASSERT_BPP(bpp)
 	int bytes;
 	bytes = (pix * bpp + 7) / 8;
 	return align_up(bytes, mul);
 }
 
-/* Return data */
-static unsigned int get_at_offset(const uint8_t *buf, const int num, const int bpp)
+static unsigned int _do_mask(unsigned char nones)
 {
-	int bytes, bits;
-
-	/* Bytes that contains start of required pixel (or whole pixel) */
-	bytes = (pix * bpp) / 8;
-	/* Bit offset where pixel starts */
-	bits = (pix * bpp) % 8;
-
-	/* TODO */
+	return (1UL << nones) - 1;
 }
 
-static uint32_t fetch_bitmap(const struct BMP *b, const size_t x, const size_t y)
+/* Extract num-th color which is bpp bits long from input buffer
+ *
+ * Buffer overflow issue should be checked from caller, if @buf is
+ * pointer to last element in array and @bpp is more that 1 byte then buffer
+ * overflow will occur.
+ * */
+static unsigned int get_at_offset(const uint8_t *buf, const int num, const int bpp)
+{
+	ASSERT_BPP(bpp)
+	assert(num >= 0);
+	assert(buf != NULL);
+
+	int nbytes, bits, out, i;
+
+	/* Bytes that contains start of required pixel (or whole pixel) */
+	nbytes = (num * bpp) / 8;
+	/* Bit offset where pixel starts */
+	bits = (num * bpp) % 8;
+
+	for (out = i = 0; i <= (bpp / 8 - !(bpp % 8)); i++)
+		out = ((buf[nbytes + i] >> bits) & _do_mask(bpp)) + (out << (8*!!i));
+
+	return out;
+}
+
+static uint32_t get_point_bitmap(const struct BMP *b, const size_t x, const size_t y)
 {
 	int scanline;
 	uint32_t pixel;
 	int bpp;
 
 	bpp = b->DIB.bits_per_pixel;
+
 	scanline = align_up_bpp(b->DIB.width, bpp, 4);
+	pixel = get_at_offset(b->pixels[scanline * y], x, bpp);
 
-	switch (bpp) {
-		pixel = b->pixels[bpp * (x + y * scanline)]
-	}
-
-
-
-	/* if color table exists, take pixel from there */
-	if (b->DIB.colors > 0)
-		return b->color_table[pixel];
-	else
-		return pixel;
+	return pixel;
 }
 
 struct Color BMP_get_pixel(const struct BMP *b, const size_t x, const size_t y)
 {
 	struct Color c;
-//	int bpp;
 	uint32_t pixel;
 
-	/* BPP 1,4,8 - color table is MUST */
-	/* BPP 16, 24, 32 - color table might be (check) */
-//	bpp = b->DIB.bits_per_pixel;
+	pixel = get_point_bitmap(b, x, y);
 
-	pixel = fetch_bitmap(b, x, y);
+	/* TODO */
 
-	c.red = pixel + x + y + align_up_bpp(1,2,3);
 #if 0
 	uint32_t pixel;
 	int scanline;
