@@ -24,15 +24,85 @@ START_TEST (test_bmp_read_file_fail)
 }
 END_TEST
 
-#if 0
-START_TEST (test_bmp_bits)
+static void test_color(const struct Color *const c1, const int red,
+			const int green, const int blue)
+{
+	ck_assert_int_eq(c1->red, red);
+	ck_assert_int_eq(c1->green, green);
+	ck_assert_int_eq(c1->blue, blue);
+}
+
+START_TEST (test_bmp_BMP_get_pixel)
+{
+	struct BMP *b;
+	struct Color c;
+	b = BMP_from_file(xstr(BMP_TEST_DIR) "images/24x24.bmp");
+	ck_assert(b != NULL);
+
+	c = BMP_get_pixel(b, 0, 6);
+
+	test_color(&c, 0xCE, 0xC9, 0x0);
+
+	BMP_destroy(b);
+}
+END_TEST
+
+START_TEST (test_bmp_ntz)
 {
 	int i;
 	for (i = 0; i <= 32; i++)
-		ck_assert_int_eq(post_zeros(1UL << i), i);
+		ck_assert_int_eq(ntz(1UL << i), i);
 }
 END_TEST
-#endif
+
+START_TEST (test_bmp_pop)
+{
+	int i;
+
+	for (i = 0; i < 32; i++)
+		ck_assert_int_eq(pop(1UL << i), 1);
+
+	ck_assert_int_eq(pop(0x0), 0);
+	ck_assert_int_eq(pop(0xFFFFFFFF), 32);
+	ck_assert_int_eq(pop(0xFF), 8);
+	ck_assert_int_eq(pop(0xFFFF), 16);
+	ck_assert_int_eq(pop(0x1FF), 9);
+	ck_assert_int_eq(pop(0x55555555), 16);
+}
+END_TEST
+
+START_TEST (test_bmp_get_bitoffset)
+{
+	struct b_offset bo;
+
+	bo = get_bitoffsets(0xFF000000);
+	ck_assert_int_eq(bo.offset, 16);
+	ck_assert_int_eq(bo.len, 8);
+
+	bo = get_bitoffsets(0b00111100);
+	ck_assert_int_eq(bo.offset, 2);
+	ck_assert_int_eq(bo.len, 4);
+}
+END_TEST
+
+
+START_TEST (test_bmp__get_bits)
+{
+	uint32_t bits;
+
+	bits = _do_mask(5) | 0x0 << 5 | _do_mask(5) << 10;
+
+	ck_assert_uint_eq(_get_bits(bits, 0, 5), _do_mask(5));
+	ck_assert_uint_eq(_get_bits(bits, 5, 5), 0b0);
+	ck_assert_uint_eq(_get_bits(bits, 10, 5), _do_mask(5));
+
+	bits = _do_mask(8) | 0x0 << 8 | _do_mask(8) << 16;
+
+	ck_assert_uint_eq(_get_bits(bits, 0, 8), _do_mask(8));
+	ck_assert_uint_eq(_get_bits(bits, 8, 8), 0x0);
+	ck_assert_uint_eq(_get_bits(bits, 16, 8), _do_mask(8));
+}
+END_TEST
 
 START_TEST (test_bmp__do_mask)
 {
@@ -185,12 +255,16 @@ Suite* bmp_suite(void)
 
 	/* Test to check file io capabilities */
 	tc_core = tcase_create("Core");
-	tcase_add_test(tc_core, test_bmp_read_file);
-	tcase_add_test(tc_core, test_bmp_read_file_fail);
-	//tcase_add_test(tc_core, test_bmp_bits);
+	tcase_add_test(tc_core, test_bmp_ntz);
+	tcase_add_test(tc_core, test_bmp_pop);
 	tcase_add_test(tc_core, test_bmp_align);
 	tcase_add_test(tc_core, test_bmp__do_mask);
+	tcase_add_test(tc_core, test_bmp__get_bits);
 	tcase_add_test(tc_core, test_bmp_get_at_offset);
+
+	tcase_add_test(tc_core, test_bmp_read_file);
+	tcase_add_test(tc_core, test_bmp_read_file_fail);
+	tcase_add_test(tc_core, test_bmp_BMP_get_pixel);
 
 	suite_add_tcase(s, tc_core);
 

@@ -62,9 +62,8 @@ void BMP_to_greyscale(struct BMP *b)
 	free(colors);
 }
 
-#if 0
 /* Functions returns number of zeros on the right side */
-static int post_zeros(uint32_t v)
+static int ntz(uint32_t v)
 {
 	int n;
 
@@ -78,7 +77,21 @@ static int post_zeros(uint32_t v)
 
 	return n + !(v&0x1);
 }
-#endif
+
+static int pop(const uint32_t v)
+{
+	int n;
+
+	n = v;
+
+	n = (n & 0x55555555) + ((n >> 1) & 0x55555555);
+	n = (n & 0x33333333) + ((n >> 2) & 0x33333333);
+	n = (n & 0x0F0F0F0F) + ((n >> 4) & 0x0F0F0F0F);
+	n = (n & 0x00FF00FF) + ((n >> 8) & 0x00FF00FF);
+	n = (n & 0x0000FFFF) + ((n >> 16) & 0x0000FFFF);
+
+	return n;
+}
 
 /* Align number up to multiple of 2 */
 static int align_up(const int v, const int mul)
@@ -140,9 +153,87 @@ static uint32_t get_point_bitmap(const struct BMP *b, const size_t x, const size
 	bpp = b->DIB.bits_per_pixel;
 
 	scanline = align_up_bpp(b->DIB.width, bpp, 4);
-	pixel = get_at_offset(b->pixels[scanline * y], x, bpp);
+	pixel = get_at_offset(&b->pixels[scanline * y], x, bpp);
 
 	return pixel;
+}
+
+struct b_offset {
+	int offset;
+	int len;
+};
+
+struct ColorOffsets {
+	struct b_offset red;
+	struct b_offset green;
+	struct b_offset blue;
+};
+
+struct ColorOffsets c16 = {
+	.red = {10, 5},
+	.green = {5, 5},
+	.blue = {0, 5}
+};
+
+struct ColorOffsets cXX = {
+	.red = {16, 8},
+	.green = {8, 8},
+	.blue = {0, 8}
+};
+
+static uint32_t _get_bits(const uint32_t word, const int offset, const int len)
+{
+	return (word >> offset) & _do_mask(len);
+}
+
+/* gets bits from @word that are at offset @offset and @len bits long */
+static uint32_t get_bits(const uint32_t word, struct b_offset *b)
+{
+	return _get_bits(word, b->offset, b->len);
+}
+
+
+static struct b_offset get_bitoffsets(const uint32_t mask)
+{
+	struct b_offset bo;
+
+	bo.offset = ntz(mask);
+	bo.len = pop(mask);
+
+	return bo;
+}
+
+static struct Color pixel_to_RGB(const struct BMP *b, uint32_t pixel)
+{
+	int bpp;
+	struct Color c;
+	struct ColorOffsets c_tmp;
+
+	memset(&c, '\0', sizeof(struct Color));
+
+	bpp = b->DIB.bits_per_pixel;
+	ASSERT_BPP(bpp);
+
+	if (b->DIB.compression == BI_RGB) {
+		switch (bpp) {
+			case 16:
+				c_tmp = c16; break;
+			default:
+				c_tmp = cXX; break;
+		}
+	} else if (b->DIB.compression == BI_BITFIELDS) {
+		c_tmp.red = get_bitoffsets(b->DIB.red_mask);
+		c_tmp.green = get_bitoffsets(b->DIB.green_mask);
+		c_tmp.blue = get_bitoffsets(b->DIB.blue_mask);
+	} else {
+		assert(0);
+	}
+
+	c.blue = get_bits(pixel, &c_tmp.blue);
+	c.green = get_bits(pixel, &c_tmp.green);
+	c.red = get_bits(pixel, &c_tmp.red);
+
+	return c;
 }
 
 struct Color BMP_get_pixel(const struct BMP *b, const size_t x, const size_t y)
@@ -150,29 +241,11 @@ struct Color BMP_get_pixel(const struct BMP *b, const size_t x, const size_t y)
 	struct Color c;
 	uint32_t pixel;
 
+	/* Supported only BI_RGB and BI_BITFIELDS */
+	assert(b->DIB.compression == BI_RGB || b->DIB.compression == BI_BITFIELDS);
+
 	pixel = get_point_bitmap(b, x, y);
-
-	/* TODO */
-
-#if 0
-	uint32_t pixel;
-	int scanline;
-	scanline = align_up(b->DIB.width, 4);
-
-	/* If colors is zero then every pixel is by itself and it shuold be
-	 * parsed according to its format */
-	if (b->DIB.colors == 0)
-		pixel = b->color_table[x + y * scanline];
-
-	/* Code below works only for compression == 3 */
-	/* This works only for 32 RGB */
-	assert(b->DIB.compression == BI_BITFIELDS);
-	pixel = b->color_table[(x + y * scanline) * (b->DIB.bits_per_pixel / 8)];
-	c.red   = (pixel & b->DIB.red_mask) >> post_zeros(b->DIB.red_mask);
-	c.green = (pixel & b->DIB.green_mask) >> post_zeros(b->DIB.green_mask);
-	c.blue  = (pixel & b->DIB.blue_mask) >> post_zeros(b->DIB.blue_mask);
-	c.alpha = (pixel & b->DIB.alpha_mask) >> post_zeros(b->DIB.alpha_mask);
-#endif
+	c = pixel_to_RGB(b, b->DIB.colors == 0 ? pixel : b->color_table[pixel]);
 
 	return c;
 }
