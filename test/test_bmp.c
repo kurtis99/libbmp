@@ -24,12 +24,12 @@ START_TEST (test_bmp_read_file_fail)
 }
 END_TEST
 
-static void test_color(const struct Color *const c1, const int red,
-			const int green, const int blue)
+static void test_color(const struct Color *const c1, const int r,
+			const int g, const int b)
 {
-	ck_assert_int_eq(c1->red, red);
-	ck_assert_int_eq(c1->green, green);
-	ck_assert_int_eq(c1->blue, blue);
+	ck_assert_int_eq(c1->red, r);
+	ck_assert_int_eq(c1->green, g);
+	ck_assert_int_eq(c1->blue, b);
 }
 
 START_TEST (test_bmp_BMP_get_pixel)

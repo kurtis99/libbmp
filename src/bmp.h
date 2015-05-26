@@ -97,7 +97,9 @@ struct BMP {
 struct BMP* BMP_from_file(const char *);
 int BMP_to_file(const char *, const struct BMP *);
 void BMP_dump(const struct BMP *);
+void BMP_dump_color(const struct Color *);
 void BMP_destroy(struct BMP *);
+struct Color BMP_get_pixel(const struct BMP *, const size_t, const size_t);
 
 void BMP_to_greyscale(struct BMP *);
 

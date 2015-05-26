@@ -9,6 +9,8 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 
+#include <endian.h>
+
 #include <assert.h>
 
 #include "bmp.h"
@@ -170,15 +172,15 @@ struct ColorOffsets {
 };
 
 struct ColorOffsets c16 = {
-	.red = {10, 5},
+	.red = {0, 5},
 	.green = {5, 5},
-	.blue = {0, 5}
+	.blue = {10, 5}
 };
 
 struct ColorOffsets cXX = {
-	.red = {16, 8},
+	.red = {0, 8},
 	.green = {8, 8},
-	.blue = {0, 8}
+	.blue = {16, 8}
 };
 
 static uint32_t _get_bits(const uint32_t word, const int offset, const int len)
@@ -222,9 +224,9 @@ static struct Color pixel_to_RGB(const struct BMP *b, uint32_t pixel)
 				c_tmp = cXX; break;
 		}
 	} else if (b->DIB.compression == BI_BITFIELDS) {
-		c_tmp.red = get_bitoffsets(b->DIB.red_mask);
-		c_tmp.green = get_bitoffsets(b->DIB.green_mask);
-		c_tmp.blue = get_bitoffsets(b->DIB.blue_mask);
+		c_tmp.red = get_bitoffsets(be32toh(b->DIB.red_mask));
+		c_tmp.green = get_bitoffsets(be32toh(b->DIB.green_mask));
+		c_tmp.blue = get_bitoffsets(be32toh(b->DIB.blue_mask));
 	} else {
 		assert(0);
 	}
@@ -276,8 +278,20 @@ static const char* _get_compression_str(const int v)
 	return str;
 }
 
+static int min(const int a, const int b)
+{
+	return a >= b ? b : a;
+}
+
+void BMP_dump_color(const struct Color *c)
+{
+	printf("Color[RGB]: %d %d %d\n", c->red, c->green, c->blue);
+}
+
 void BMP_dump(const struct BMP *b)
 {
+	int i;
+
 	printf("BMP magic: %c%c\n", b->Header.magic[0], b->Header.magic[1]);
 	printf("BMP size: %u\n", b->Header.size);
 	printf("BMP pixel offset: %u\n", b->Header.pix_offset);
@@ -312,4 +326,12 @@ void BMP_dump(const struct BMP *b)
 	dump_dib(ICC_profile_data, "ICC_profile_data")
 	dump_dib(ICC_profile_size, "ICC_profile_size")
 	dump_dib(reserved, "reserved")
+
+	printf("Dumps pixels buffer\n");
+	for (i = 0; i < min(256, b->DIB.image_size); i++) {
+		if (i%32 == 0 && i > 0)
+			printf("\n");
+		printf("%02x ", b->pixels[i]);
+	}
+	printf("\n");
 }
